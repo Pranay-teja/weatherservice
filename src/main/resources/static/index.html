@@ -1,0 +1,157 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Weather</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <style>
+        .topButtons {
+          background-color: #606060;
+          border: none;
+          color: white;
+          padding: 15px 32px;
+          text-align: center;
+          text-decoration: none;
+          display: inline-block;
+          font-size: 16px;
+          margin: 4px 2px;
+          cursor: pointer;
+        }
+        body{
+          margin: auto;
+          width: 60%;
+          padding: 10px;
+        }
+        input[type=text], select {
+          text-align: center;
+          width: 100%;
+          padding: 12px 20px;
+          margin: 8px 0;
+          display: inline-block;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          box-sizing: border-box;
+        }
+
+        input[type=submit] {
+          width: 100%;
+          background-color: #606060;
+          color: white;
+          padding: 14px 20px;
+          margin: 8px 0;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h2 align="center" style="color: #009999"> Restful Weather Service  </h2>
+    <button class="topButtons" onclick="showHideDiv('forecast')">Forecast</button>
+    <button class="topButtons" onclick="showHideDiv('graph')" id="forecastTemp" >Open weather</button>
+    <br><br>
+
+    <form id="forecast" action="http://ec2-18-222-209-88.us-east-2.compute.amazonaws.com/weather/forecast/" style="display:none">
+        <input type="text" name="DATE" placeholder="Enter the date">
+        <br>
+        <input type="submit" value="forecast">
+    </form>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js"></script>
+    <div id="graph">
+        <canvas id="lineChart" height="60px" width="150px"></canvas>
+    </div>
+
+</body>
+</html>
+
+
+<script>
+
+function showHideDiv(ele) {
+    var srcElement = document.getElementById(ele);
+    if (srcElement != null) {
+        if (srcElement.style.display == "block") {
+            srcElement.style.display = 'none';
+        }
+        else {
+            srcElement.style.display = 'block';
+        }
+        return false;
+    }
+}
+
+$(document).ready(function(){
+    $("#forecastTemp").click(function(){
+        $.ajax({url: "http://api.openweathermap.org/data/2.5/forecast/daily?id=4508722&cnt=7&appid=851f7f92543152f2ad87bf41042a2753", success: function(result){
+        var dateArray = [];
+        var tminArray = [];
+        var tmaxArray = [];
+        $.each(result.list, function(i, item) {
+            var date = new Date(item.dt*1000);
+            date = date.getFullYear()+"/"+ (date.getMonth()+1)+"/"+date.getDate();
+             var tempMax = item.temp.max-273;
+             var tempMin = item.temp.min-273;
+             dateArray.push(date);
+             tminArray.push(tempMin.toFixed(2));
+             tmaxArray.push(tempMax.toFixed(2));
+             displayLineChart(dateArray,tminArray,tmaxArray);
+        });
+    }});
+    });
+});
+
+$("#forecast").submit(function(e) {
+    e.preventDefault();
+    var form = $(this);
+    var urlDes = form.attr('action');
+    $.ajax({
+        url: urlDes+form.find('input[name="DATE"]').val(),
+        type: 'GET',
+        success: function(result) {
+            var dateArray = [];
+            var tminArray = [];
+            var tmaxArray = [];
+            $.each(result, function(i, item) {
+                dateArray.push(item.DATE);
+                 tminArray.push(item.TMIN);
+                 tmaxArray.push(item.TMAX);
+                 displayLineChart(dateArray,tminArray,tmaxArray);
+            });
+            showHideDiv('forecast');
+        }
+    });
+});
+
+function displayLineChart(dateArray,tminArray,tmaxArray) {
+    var data = {
+        labels: dateArray,
+        datasets: [
+            {
+                label: "TMIN",
+                fillColor: "rgba(255,204,204,0.2)",
+                strokeColor: "rgba(255,204,204,1)",
+                pointColor: "rgba(255,204,204 ,1)",
+                pointStrokeColor: "#fff",
+                pointHighlightFill: "#fff",
+                pointHighlightStroke: "rgba(220,220,220,1)",
+                data: tminArray
+            },
+            {
+                label: "TMAX",
+                fillColor: "rgba(255,153,153,0.2)",
+                strokeColor: "rgba(255,153,153,1)",
+                pointColor: "rgba(1255,153,153,1)",
+                pointStrokeColor: "#fff",
+                pointHighlightFill: "#fff",
+                pointHighlightStroke: "rgba(151,187,205,1)",
+                data: tmaxArray
+            }
+        ]
+    };
+    var ctx = document.getElementById("lineChart").getContext("2d");
+    var lineChart = new Chart(ctx, {
+        type: 'line',
+        data: data,
+        options: {}
+    });
+}
+</script>
